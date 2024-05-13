@@ -1,0 +1,311 @@
+---
+title: "Project Analysis - Customer Transaction Data"
+
+author: "Cheng Chun Chieh"
+
+date: "8 May 2024"
+date-modified: "last-modified"
+
+format: html
+execute: 
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+  
+editor: visual
+---
+
+# 1. Getting Started
+
+First loading the packages:
+
+```{r}
+pacman::p_load(ggstatsplot,plotly, patchwork, hrbrthemes, ggridges, ggrepel, tidyverse, ggpubr, scales, colorspace, ggdist)
+
+```
+
+## 1.1 Reading the Data
+
+```{r}
+df <- read_csv("data/updated_data.csv")
+```
+
+Not sure why, but there are empty columns being loaded. We will remove that. Additionally, we will expand the columns to include the measure values in separate columns, e.g. Retail Price etc.
+
+```{r}
+df <- df %>%
+  select(-18:-29)
+
+df_transformed <- df %>%
+  pivot_wider(names_from = `Measure Names`, values_from = `Measure Values`)
+```
+
+Standardise the typing format under Category Description.
+
+```{r}
+
+df_transformed <- df_transformed %>%
+  mutate(`Category Description` = case_when(
+    str_detect(`Category Description`, "Home collection") ~ "Home Collection",
+    str_detect(`Category Description`, "SKIN CARE") ~ "Skin Care",
+    str_detect(`Category Description`, "Skin care") ~ "Skin Care",
+    str_detect(`Category Description`, "ORAL CARE") ~ "Oral Care",
+    TRUE ~ `Category Description`
+  ))
+```
+
+# 2.1 EDA
+
+Let's do some initial statistic counting first to understand the data.
+
+## 2.1 Number of Rows with Net Price = 0 / Customer who received Samples
+
+```{r}
+num_zeros <- df_transformed %>%   
+  filter(`Net Price (SGD)` == 0)
+```
+
+We have 40,049 observations with net price = 0. Based on the product description, these looks like sample products that are given with the purchase.
+
+Let's do a count of the number of customers and their IDs who received these samples.
+
+```{r}
+samples_per_customer <- num_zeros %>%   
+  group_by(Customer) %>%   
+  summarise(samples_received = n_distinct(`Order No`))
+```
+
+From the data - we have 11,329 unique customers who received these samples.
+
+Quick visualisation on the number of samples per customers:
+
+```{r}
+ggplot(data=samples_per_customer,         
+       aes(x = samples_received)) +   
+  geom_bar(bins=1,                   
+           boundary = 100,                  
+           color="grey25",                   
+           fill="grey90") +   
+  theme_minimal() +   
+  xlim(0,5) +   
+  ggtitle("Samples Per Customers")
+```
+
+Can see that most of them only received 1 samples.
+
+We remove these samples from the main dataset:
+
+```{r}
+df_filtered <- df_transformed %>%   
+  filter(`Net Price (SGD)` != 0) %>%   
+  filter(`Retail Price (SGD)` != 0)
+
+df_filtered <- df_filtered %>%   
+  mutate(per_discount = (`Item Discount (SGD)` / `Retail Price (SGD)` * 100)) %>%
+  mutate(per_discount = ifelse(is.infinite(per_discount), NA, per_discount))
+
+```
+
+## 2.2 Checking Customer Data
+
+### 2.1.1 Number of Customers
+
+First, lets see how many unique customers are there.
+
+```{r}
+
+num_unique_customers <- df_filtered %>%
+  distinct(Customer, `Customer Gender`, Country) %>%
+  mutate(`Customer Gender` = factor(`Customer Gender`),
+         Country = factor(Country)) 
+
+summary(num_unique_customers)
+```
+
+The data comprise 20664 unique customer ID.
+
+Of which, we have 11,663 customers with gender. From these data, we have **8782 Female Customers** and **2881 Male Customers**.
+
+### 2.1.2 Number of Orders and Number of Products
+
+```{r}
+# Calculate the total number of products purchased by each customer
+products_per_customer <- df_filtered %>%
+  group_by(Customer) %>%
+  summarise(total_num_products = sum(Qty))
+
+summary(products_per_customer)
+
+# Calculate the number of orders made by each customer
+orders_per_customer <- df_filtered  %>%
+  group_by(Customer) %>%
+  summarise(Freq = n_distinct(`Order No`),
+            Monetary = sum(`Net Price (SGD)`, na.rm = TRUE))
+
+summary (orders_per_customer)
+```
+
+```{r}
+#| code-fold: true
+
+head(products_per_customer[order(products_per_customer$total_num_products, decreasing = TRUE), ], 30)
+```
+
+```{r}
+#| code-fold: true
+
+head(orders_per_customer[order(orders_per_customer$Monetary, decreasing = TRUE), ], 30)
+```
+
+We may need to filter out these customers subsequently as they do not represent the average customers - also to find out where are they from.
+
+```{r}
+ggplot(data=orders_per_customer, 
+       aes(x = Freq)) +
+  geom_bar(bins=20, 
+                 boundary = 100,
+                 color="grey25", 
+                 fill="grey90") +
+  theme_minimal() +
+  xlim(0,20) +
+  ggtitle("Count of Number of Orders")
+```
+
+### 2.1.3 Calculating Recency
+
+```{r}
+
+df_dates <- df_filtered %>%   
+  mutate(`Document Date` = as.Date(as.character(`Document Date`),format='%d/%m/%Y'))  
+
+a <- as.numeric(Sys.Date(), format="%d/%m/%Y")     
+
+recency_per_customer <- df_dates %>%   
+  group_by(Customer) %>%   
+  summarise(recency = a - as.numeric(max(`Document Date`), format="%d/%m/%Y"))  
+summary(recency_per_customer)
+```
+
+### 2.1.4 Checking the mode of purchase and types of products
+
+First, to check the summary of the category description.
+
+```{r}
+summary(as.factor(df_filtered$`Category Description`))
+```
+
+```{r}
+# Group by customers and create indicator columns
+df_indicators <- df_filtered %>%
+  group_by(Customer) %>%
+  reframe(
+    retail = ifelse("Retail" %in% `Sales Channel`, "Yes", "No"),
+    third_party = ifelse("3rd Party Marketplaces" %in% `Sales Channel`, "Yes", "No"),
+    corp = ifelse("Corp Sales" %in% `Sales Channel`, "Yes", "No"),
+    website = ifelse("eCommerce Stores" %in% `Sales Channel`, "Yes", "No"),
+    fragrance = ifelse("Fragrance" %in% `Category Description`, "Yes", "No"),
+    skincare = ifelse("Skin Care" %in% `Category Description`, "Yes", "No"),
+    bathbody = ifelse("Bath and Body" %in% `Category Description`, "Yes", "No"),
+    home = ifelse("Home Collection" %in% `Category Description`, "Yes", "No"),
+    haircare = ifelse("Haircare" %in% `Category Description`, "Yes", "No"),
+    makeup = ifelse("Make up" %in% `Category Description`, "Yes", "No"),
+    oral = ifelse("Oral Care" %in% `Category Description`, "Yes", "No"),
+    beauty_acc = ifelse("Beauty Accessories" %in% `Category Description`, "Yes", "No"),
+    fashion_acc = ifelse("Fashion Accessories" %in% `Category Description`, "Yes", "No")
+    ) 
+ 
+```
+
+### 2.1.5 Looking across brands
+
+```{r}
+summary(as.factor(df_filtered$`Brand Description`))
+```
+
+```{r}
+
+df_filtered <- df_filtered %>%
+  mutate(
+    `Brand Description` = if_else(`Brand Description` == "Masion de L\x92asie", "Masion de L",
+    if_else(`Brand Description` == "MALIN + GOETZ", "MALINGOETZ.",
+                                           `Brand Description`))
+  )
+
+
+```
+
+```{r}
+df_brands <- df_filtered %>%
+  pivot_wider(names_from = `Brand Description`, values_from = `Qty`) %>% 
+  select(Customer, 23:76)
+
+df_brands[is.na(df_brands)] <- 0
+```
+
+```{r}
+df_brand1 <- df_brands %>%
+  group_by(Customer) %>%
+  summarise(across(1:54, ~sum(.)))
+```
+
+### 2.1.6 Looking at the Discounts
+
+We have earlier created the percentage discount per orders. Seems weird - but there is one with a discount of more than 100%. So we will filter that out.
+
+```{r}
+summary(df_filtered$per_discount)
+```
+
+```{r}
+df_filtered <- df_filtered %>% 
+  filter(per_discount <= 100)
+```
+
+Plot the range of the discount:
+
+```{r}
+ggplot(df_filtered, aes(x = per_discount)) +
+  geom_histogram(binwidth = 10, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of Discount", x = "Discount", y = "Frequency") +
+  theme_minimal ()
+```
+
+```{r}
+
+df_filtered <- df_filtered %>%
+  mutate(discount_category = cut(per_discount, breaks = c(-Inf, 0, 25, Inf), labels = c("no_disc", "0_25", "25_abv")))
+
+df_discount <- df_filtered %>%
+  pivot_wider(names_from = discount_category, values_from = `Qty`) %>%
+  group_by(Customer) %>%
+  summarise(across(24:26, ~sum(.)))
+
+```
+
+```{r}
+
+df_discount <- df_discount %>%
+  mutate(across(2:4, ~ifelse(is.na(.), "No", ifelse(. > 1, "Yes", "No"))))
+
+```
+
+# 3. Building the Customer Profile
+
+```{r}
+left_joined_df <- 
+  left_join(orders_per_customer, products_per_customer, by = "Customer") %>%
+  left_join(recency_per_customer, by = "Customer") %>%
+  left_join(samples_per_customer, by = "Customer") %>%
+  left_join(num_unique_customers, by = "Customer")  %>%
+  left_join(df_discount, by = "Customer") %>%
+  left_join(df_indicators, by = "Customer") 
+
+left_joined_df[is.na(left_joined_df)] <- 0
+```
+
+# 4. Clustering based on RFM
+
+```{r}
+write.csv(left_joined_df, "customer_profile.csv", row.names = TRUE)
+```
