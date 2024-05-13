@@ -1,0 +1,150 @@
+---
+title: "Assignment 1"
+
+author: "Cheng Chun Chieh"
+
+date: "13 May 2024"
+date-modified: "last-modified"
+
+format: html
+execute: 
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+  
+editor: visual
+---
+
+# Data Prep
+
+```{r}
+pacman::p_load(ggstatsplot,plotly, patchwork, hrbrthemes, ggridges, ggrepel, tidyverse, ggpubr, scales, colorspace, ggdist, zoo)
+
+```
+
+## Reading Data 
+
+```{r}
+df <- read_csv("data/ResponderInfo.csv")
+
+df2 <- read_csv("data/Transactions.csv")
+```
+
+```{r}
+
+```
+
+## Checking Data - Response Values
+
+```{r}
+df$response_value <- factor(df$response_value)
+
+summary(df)
+
+unique_customers <- unique(df$Customer_Number)
+```
+
+## Checking Data - Transaction Values 
+
+```{r}
+unique_customers1 <- unique(df2$Customer_Number)
+```
+
+We have 6889 customers here. and we have 125000 transactions.
+
+```{r}
+summary(df2)
+```
+
+```{r}
+df2$trans_date <- as.Date(df2$trans_date, format = "%d-%b-%y")
+```
+
+```{r}
+df3 <- df2
+```
+
+```{r}
+df3 <- df3 %>%
+  mutate(month_year = format(trans_date, "%b-%Y"))
+
+# Group by month and year and count the number of transactions in each month
+df4 <- df3 %>%
+  group_by(month_year) %>%
+  summarise(num_transactions = n())
+```
+
+```{r}
+
+df4$trans_date <- as.Date(paste0("01", sep="-", df4$month_year), format = "%d-%b-%Y")
+
+df4 <- df4 %>%
+  arrange(trans_date)
+```
+
+```{r}
+ggplot(df4, aes(x = trans_date, y = num_transactions)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Date", y = "Number of Transactions", title = "Transaction Counts Over Time") +
+  theme_minimal()
+```
+
+## Purchase Pattern by Year for each Customer 
+
+```{r}
+df5 <- df2 %>%
+  mutate(year = format(trans_date, "%Y"))
+```
+
+```{r}
+customer_summary_year <- df5 %>%
+  group_by(Customer_Number, year) %>%
+  summarise(num_purchases = n(),
+            avg_purchase = mean(tran_value),
+            total_purchase = sum(tran_value)
+            ) %>%
+  pivot_wider(
+    names_from = year, 
+    values_from = c(num_purchases, avg_purchase, total_purchase), 
+    names_prefix = "year_"
+    ) %>%
+  ungroup()
+
+customer_summary_year[is.na(customer_summary_year)] <- 0
+```
+
+## Grouping Data by Customer
+
+```{r}
+customer_summary <- df3 %>%
+  group_by(Customer_Number) %>%
+  summarise(
+    num_transactions = n(),
+    total_value = sum(tran_value, na.rm = TRUE),
+    avg_trans_value = mean(tran_value, na.rm = TRUE),
+    days_last = as.numeric(Sys.Date() - max(trans_date)),
+    days_first = as.numeric(Sys.Date() - min(trans_date))   
+  )
+
+```
+
+```{r}
+combined_df <- left_join(customer_summary, df, by = "Customer_Number")
+
+# Replace missing values in the 'response' column with "Missing"
+combined_df$response_value[is.na(combined_df$response_value)] <- "Missing"
+```
+
+```{r}
+combined_df <- left_join(combined_df, customer_summary_year, by ="Customer_Number")
+```
+
+```{r}
+write_rds(combined_df, "combined.rds")
+```
+
+```{r}
+write_csv(combined_df, "data/customer_combined.csv")
+```

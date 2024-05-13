@@ -9,7 +9,7 @@ website:
         text: Home
       - href: projectanalysis.qmd
         text: Project Analysis - Customer Transaction Data
-      - href: Assignment1.qmd
+      - href: assignment1.qmd
         text: Assignment 1
       - about.qmd
 
