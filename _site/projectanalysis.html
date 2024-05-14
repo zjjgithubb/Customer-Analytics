@@ -173,8 +173,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#looking-at-the-discounts" id="toc-looking-at-the-discounts" class="nav-link" data-scroll-target="#looking-at-the-discounts">2.1.6 Looking at the Discounts</a></li>
   </ul></li>
   </ul></li>
-  <li><a href="#building-the-customer-profile" id="toc-building-the-customer-profile" class="nav-link" data-scroll-target="#building-the-customer-profile">3. Building the Customer Profile</a></li>
-  <li><a href="#clustering-based-on-rfm" id="toc-clustering-based-on-rfm" class="nav-link" data-scroll-target="#clustering-based-on-rfm">4. Clustering based on RFM</a></li>
+  <li><a href="#building-the-customer-profile" id="toc-building-the-customer-profile" class="nav-link" data-scroll-target="#building-the-customer-profile">3. Building the Customer Profile</a>
+  <ul class="collapse">
+  <li><a href="#plot-the-monetary-value-of-customers-who-are-repeat-customers-vs-those-non-repeat" id="toc-plot-the-monetary-value-of-customers-who-are-repeat-customers-vs-those-non-repeat" class="nav-link" data-scroll-target="#plot-the-monetary-value-of-customers-who-are-repeat-customers-vs-those-non-repeat">Plot the monetary value of Customers who are repeat customers vs those non-repeat</a></li>
+  <li><a href="#patterns-of-customer-using-discount" id="toc-patterns-of-customer-using-discount" class="nav-link" data-scroll-target="#patterns-of-customer-using-discount">Patterns of Customer using Discount</a></li>
+  </ul></li>
+  <li><a href="#clustering-using-rfm" id="toc-clustering-using-rfm" class="nav-link" data-scroll-target="#clustering-using-rfm">Clustering using RFM</a></li>
   </ul>
 </nav>
     </div>
@@ -358,6 +362,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  Max.   :5230122   Max.   :457.000   Max.   :3599713  </code></pre>
 </div>
 </div>
+<p>For the study here - I just define Freq as the number of orders within the 2 years period, i.e.&nbsp;even if within the same month or week.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -411,8 +416,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">color=</span><span class="st">"grey25"</span>, </span>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fill=</span><span class="st">"grey90"</span>) <span class="sc">+</span></span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="dv">0</span>,<span class="dv">20</span>) <span class="sc">+</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Count of Number of Orders"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">stat=</span><span class="st">'count'</span>, <span class="fu">aes</span>(<span class="at">label=</span>..count..), <span class="at">vjust=</span><span class="sc">-</span><span class="dv">1</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="dv">0</span>,<span class="dv">20</span>) <span class="sc">+</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Count of Number of Orders"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -424,24 +430,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="calculating-recency" class="level3">
 <h3 class="anchored" data-anchor-id="calculating-recency">2.1.3 Calculating Recency</h3>
+<p>I calculated recency based on the last day of order and the number of days in between then and 14 May 24.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>df_dates <span class="ot">&lt;-</span> df_filtered <span class="sc">%&gt;%</span>   </span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">Document Date</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">as.Date</span>(<span class="fu">as.character</span>(<span class="st">`</span><span class="at">Document Date</span><span class="st">`</span>),<span class="at">format=</span><span class="st">'%d/%m/%Y'</span>))  </span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">Sys.Date</span>(), <span class="at">format=</span><span class="st">"%d/%m/%Y"</span>)     </span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>recency_per_customer <span class="ot">&lt;-</span> df_dates <span class="sc">%&gt;%</span>   </span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Customer) <span class="sc">%&gt;%</span>   </span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">recency =</span> a <span class="sc">-</span> <span class="fu">as.numeric</span>(<span class="fu">max</span>(<span class="st">`</span><span class="at">Document Date</span><span class="st">`</span>), <span class="at">format=</span><span class="st">"%d/%m/%Y"</span>))  </span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(recency_per_customer)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>date <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="st">"14/May/2024"</span>, <span class="at">format=</span><span class="st">"%d/%b/%Y"</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(date)     </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>recency_per_customer <span class="ot">&lt;-</span> df_dates <span class="sc">%&gt;%</span>   </span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Customer) <span class="sc">%&gt;%</span>   </span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">recency =</span> a <span class="sc">-</span> <span class="fu">as.numeric</span>(<span class="fu">max</span>(<span class="st">`</span><span class="at">Document Date</span><span class="st">`</span>), <span class="at">format=</span><span class="st">"%d/%m/%Y"</span>))  </span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(recency_per_customer)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>    Customer          recency     
- Min.   :1000350   Min.   :134.0  
- 1st Qu.:2116865   1st Qu.:266.0  
- Median :3471894   Median :476.0  
- Mean   :3243219   Mean   :472.2  
- 3rd Qu.:4291294   3rd Qu.:666.0  
- Max.   :5230122   Max.   :863.0  </code></pre>
+ Min.   :1000350   Min.   :135.0  
+ 1st Qu.:2116865   1st Qu.:267.0  
+ Median :3471894   Median :477.0  
+ Mean   :3243219   Mean   :473.2  
+ 3rd Qu.:4291294   3rd Qu.:667.0  
+ Max.   :5230122   Max.   :864.0  </code></pre>
 </div>
 </div>
 </section>
@@ -574,16 +582,51 @@ MAISON FRANCIS KURKDJIAN            MALIN + GOETZ         MATIERE PREMIERE
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>df_filtered <span class="ot">&lt;-</span> df_filtered <span class="sc">%&gt;%</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">discount_category =</span> <span class="fu">cut</span>(per_discount, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, <span class="dv">0</span>, <span class="dv">25</span>, <span class="cn">Inf</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"no_disc"</span>, <span class="st">"0_25"</span>, <span class="st">"25_abv"</span>)))</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">discount_category =</span> <span class="fu">cut</span>(per_discount, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, <span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="cn">Inf</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"no_disc"</span>, <span class="st">"0_10"</span>, <span class="st">"10_20"</span>, <span class="st">"20_30"</span>, <span class="st">"30_40"</span>, <span class="st">"40_abv"</span>)))</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>df_discount <span class="ot">&lt;-</span> df_filtered <span class="sc">%&gt;%</span></span>
 <span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> discount_category, <span class="at">values_from =</span> <span class="st">`</span><span class="at">Qty</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Customer) <span class="sc">%&gt;%</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="dv">24</span><span class="sc">:</span><span class="dv">26</span>, <span class="sc">~</span><span class="fu">sum</span>(.)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="dv">24</span><span class="sc">:</span><span class="dv">29</span>, <span class="sc">~</span><span class="fu">sum</span>(.)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We also plot the count of orders and their discount type:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_filtered, <span class="fu">aes</span>(<span class="at">x =</span> discount_category)) <span class="sc">+</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">fill =</span> <span class="st">"lightblue"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Count of Orders by Discount Category"</span>, <span class="at">x =</span> <span class="st">"Discount"</span>, <span class="at">y =</span> <span class="st">"Frequency"</span>) <span class="sc">+</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylim</span>(<span class="dv">0</span>,<span class="dv">70000</span>) <span class="sc">+</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">stat=</span><span class="st">'count'</span>, <span class="fu">aes</span>(<span class="at">label=</span>..count..), <span class="at">vjust=</span><span class="sc">-</span><span class="dv">1</span>) <span class="sc">+</span> </span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="projectanalysis_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>df_discount <span class="ot">&lt;-</span> df_discount <span class="sc">%&gt;%</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="sc">~</span><span class="fu">ifelse</span>(<span class="fu">is.na</span>(.), <span class="st">"No"</span>, <span class="fu">ifelse</span>(. <span class="sc">&gt;</span> <span class="dv">1</span>, <span class="st">"Yes"</span>, <span class="st">"No"</span>))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>df_discount <span class="ot">&lt;-</span> df_discount <span class="sc">%&gt;%</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>, <span class="sc">~</span><span class="fu">ifelse</span>(<span class="fu">is.na</span>(.), <span class="st">"No"</span>, <span class="fu">ifelse</span>(. <span class="sc">&gt;</span> <span class="dv">1</span>, <span class="st">"Yes"</span>, <span class="st">"No"</span>))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>df_discount <span class="ot">&lt;-</span> df_discount <span class="sc">%&gt;%</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">discount =</span> <span class="fu">ifelse</span>(<span class="fu">rowSums</span>(<span class="fu">across</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">7</span>, <span class="sc">~</span> . <span class="sc">==</span> <span class="st">"Yes"</span>)) <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"Yes"</span>, <span class="st">"No"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_discount, <span class="fu">aes</span>(<span class="at">x =</span> discount)) <span class="sc">+</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">fill =</span> <span class="st">"lightblue"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Number of Customers who ordered with any discount"</span>, <span class="at">x =</span> <span class="st">"Discount"</span>, <span class="at">y =</span> <span class="st">"Frequency"</span>) <span class="sc">+</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylim</span>(<span class="dv">0</span>,<span class="dv">12000</span>) <span class="sc">+</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">stat=</span><span class="st">'count'</span>, <span class="fu">aes</span>(<span class="at">label=</span>..count..), <span class="at">vjust=</span><span class="sc">-</span><span class="dv">1</span>) <span class="sc">+</span> <span class="co"># Use stat='count' to label counts</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="projectanalysis_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 </section>
@@ -591,22 +634,75 @@ MAISON FRANCIS KURKDJIAN            MALIN + GOETZ         MATIERE PREMIERE
 <section id="building-the-customer-profile" class="level1">
 <h1>3. Building the Customer Profile</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>left_joined_df <span class="ot">&lt;-</span> </span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(orders_per_customer, products_per_customer, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(recency_per_customer, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(samples_per_customer, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(num_unique_customers, <span class="at">by =</span> <span class="st">"Customer"</span>)  <span class="sc">%&gt;%</span></span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df_discount, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df_indicators, <span class="at">by =</span> <span class="st">"Customer"</span>) </span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>left_joined_df[<span class="fu">is.na</span>(left_joined_df)] <span class="ot">&lt;-</span> <span class="dv">0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>left_joined_df <span class="ot">&lt;-</span> </span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(orders_per_customer, products_per_customer, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(recency_per_customer, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(samples_per_customer, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(num_unique_customers, <span class="at">by =</span> <span class="st">"Customer"</span>)  <span class="sc">%&gt;%</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df_discount, <span class="at">by =</span> <span class="st">"Customer"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df_indicators, <span class="at">by =</span> <span class="st">"Customer"</span>) </span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>left_joined_df[<span class="fu">is.na</span>(left_joined_df)] <span class="ot">&lt;-</span> <span class="dv">0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(left_joined_df, <span class="st">"data/customer_profile.csv"</span>, <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="plot-the-monetary-value-of-customers-who-are-repeat-customers-vs-those-non-repeat" class="level2">
+<h2 class="anchored" data-anchor-id="plot-the-monetary-value-of-customers-who-are-repeat-customers-vs-those-non-repeat">Plot the monetary value of Customers who are repeat customers vs those non-repeat</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>df_summary <span class="ot">&lt;-</span> left_joined_df <span class="sc">%&gt;%</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">freq_group =</span> <span class="fu">ifelse</span>(Freq <span class="sc">==</span> <span class="dv">1</span>, <span class="st">"Frequency 1"</span>, <span class="st">"Frequency &gt; 1"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(freq_group) <span class="sc">%&gt;%</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">total_monetary =</span> <span class="fu">sum</span>(Monetary))</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the summarized data</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_summary, <span class="fu">aes</span>(<span class="at">x =</span> freq_group, <span class="at">y =</span> total_monetary, <span class="at">fill =</span> freq_group)) <span class="sc">+</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Total Monetary Value by Customer Frequency"</span>,</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Customer Frequency"</span>,</span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Total Monetary Value (in Millions)"</span>) <span class="sc">+</span></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span><span class="fu">comma_format</span>(<span class="at">scale =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">1000000</span>, <span class="at">suffix =</span> <span class="st">" M"</span>)) <span class="sc">+</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="projectanalysis_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
-<section id="clustering-based-on-rfm" class="level1">
-<h1>4. Clustering based on RFM</h1>
+<section id="patterns-of-customer-using-discount" class="level2">
+<h2 class="anchored" data-anchor-id="patterns-of-customer-using-discount">Patterns of Customer using Discount</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(left_joined_df, <span class="st">"customer_profile.csv"</span>, <span class="at">row.names =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize the data by counting the number of "Yes" values in the discount column</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>df_summary1 <span class="ot">&lt;-</span> left_joined_df <span class="sc">%&gt;%</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">freq_group =</span> <span class="fu">ifelse</span>(Freq <span class="sc">==</span> <span class="dv">1</span>, <span class="st">"Frequency 1"</span>, <span class="st">"Frequency &gt; 1"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(freq_group) <span class="sc">%&gt;%</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">yes_count =</span> <span class="fu">sum</span>(discount <span class="sc">==</span> <span class="st">"Yes"</span>))</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the summarized data</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_summary1, <span class="fu">aes</span>(<span class="at">x =</span> freq_group, <span class="at">y =</span> yes_count, <span class="at">fill =</span> freq_group)) <span class="sc">+</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Count of 'Yes' in Discount by Customer Frequency"</span>,</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Customer Frequency"</span>,</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Count of 'Yes' in Discount"</span>) <span class="sc">+</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="projectanalysis_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
 </div>
+</div>
+</div>
+</section>
+</section>
+<section id="clustering-using-rfm" class="level1">
+<h1>Clustering using RFM</h1>
+<ul>
+<li>done on SAS Viya</li>
+</ul>
 
 
 </section>

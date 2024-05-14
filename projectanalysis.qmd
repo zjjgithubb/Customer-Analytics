@@ -337,7 +337,7 @@ left_joined_df[is.na(left_joined_df)] <- 0
 ```
 
 ```{r}
-write.csv(left_joined_df, "customer_profile.csv", row.names = TRUE)
+write.csv(left_joined_df, "data/customer_profile.csv", row.names = TRUE)
 ```
 
 ## Plot the monetary value of Customers who are repeat customers vs those non-repeat 
