@@ -23,7 +23,7 @@ pacman::p_load(ggstatsplot,plotly, patchwork, hrbrthemes, ggridges, ggrepel, tid
 
 ```
 
-## Reading Data 
+## Reading Data
 
 ```{r}
 df <- read_csv("data/ResponderInfo.csv")
@@ -45,7 +45,7 @@ summary(df)
 unique_customers <- unique(df$Customer_Number)
 ```
 
-## Checking Data - Transaction Values 
+## Checking Data - Transaction Values
 
 ```{r}
 unique_customers1 <- unique(df2$Customer_Number)
@@ -91,7 +91,7 @@ ggplot(df4, aes(x = trans_date, y = num_transactions)) +
   theme_minimal()
 ```
 
-## Purchase Pattern by Year for each Customer 
+## Purchase Pattern by Year for each Customer
 
 ```{r}
 df5 <- df2 %>%

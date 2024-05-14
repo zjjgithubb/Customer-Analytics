@@ -12,6 +12,7 @@ execute:
   eval: true
   warning: false
   freeze: true
+  code-fold: true
   
 editor: visual
 ---
@@ -146,6 +147,8 @@ orders_per_customer <- df_filtered  %>%
 summary (orders_per_customer)
 ```
 
+For the study here - I just define Freq as the number of orders within the 2 years period, i.e. even if within the same month or week.
+
 ```{r}
 #| code-fold: true
 
@@ -168,18 +171,22 @@ ggplot(data=orders_per_customer,
                  color="grey25", 
                  fill="grey90") +
   theme_minimal() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size = 2) +
   xlim(0,20) +
   ggtitle("Count of Number of Orders")
 ```
 
 ### 2.1.3 Calculating Recency
 
+I calculated recency based on the last day of order and the number of days in between then and 14 May 24.
+
 ```{r}
 
 df_dates <- df_filtered %>%   
   mutate(`Document Date` = as.Date(as.character(`Document Date`),format='%d/%m/%Y'))  
 
-a <- as.numeric(Sys.Date(), format="%d/%m/%Y")     
+date <- as.Date("14/May/2024", format="%d/%b/%Y")
+a <- as.numeric(date)     
 
 recency_per_customer <- df_dates %>%   
   group_by(Customer) %>%   
@@ -274,20 +281,45 @@ ggplot(df_filtered, aes(x = per_discount)) +
 ```{r}
 
 df_filtered <- df_filtered %>%
-  mutate(discount_category = cut(per_discount, breaks = c(-Inf, 0, 25, Inf), labels = c("no_disc", "0_25", "25_abv")))
+  mutate(discount_category = cut(per_discount, breaks = c(-Inf, 0, 10, 20, 30, 40, Inf), labels = c("no_disc", "0_10", "10_20", "20_30", "30_40", "40_abv")))
 
 df_discount <- df_filtered %>%
   pivot_wider(names_from = discount_category, values_from = `Qty`) %>%
   group_by(Customer) %>%
-  summarise(across(24:26, ~sum(.)))
+  summarise(across(24:29, ~sum(.)))
 
+```
+
+We also plot the count of orders and their discount type:
+
+```{r}
+ggplot(df_filtered, aes(x = discount_category)) +
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Count of Orders by Discount Category", x = "Discount", y = "Frequency") +
+  ylim(0,70000) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) + 
+  theme_minimal()
 ```
 
 ```{r}
 
 df_discount <- df_discount %>%
-  mutate(across(2:4, ~ifelse(is.na(.), "No", ifelse(. > 1, "Yes", "No"))))
+  mutate(across(2:7, ~ifelse(is.na(.), "No", ifelse(. > 1, "Yes", "No"))))
 
+```
+
+```{r}
+df_discount <- df_discount %>%
+  mutate(discount = ifelse(rowSums(across(2:7, ~ . == "Yes")) > 0, "Yes", "No"))
+```
+
+```{r}
+ggplot(df_discount, aes(x = discount)) +
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Number of Customers who ordered with any discount", x = "Discount", y = "Frequency") +
+  ylim(0,12000) +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) + # Use stat='count' to label counts
+  theme_minimal()
 ```
 
 # 3. Building the Customer Profile
@@ -304,8 +336,46 @@ left_joined_df <-
 left_joined_df[is.na(left_joined_df)] <- 0
 ```
 
-# 4. Clustering based on RFM
-
 ```{r}
 write.csv(left_joined_df, "customer_profile.csv", row.names = TRUE)
 ```
+
+## Plot the monetary value of Customers who are repeat customers vs those non-repeat 
+
+```{r}
+df_summary <- left_joined_df %>%
+  mutate(freq_group = ifelse(Freq == 1, "Frequency 1", "Frequency > 1")) %>%
+  group_by(freq_group) %>%
+  summarize(total_monetary = sum(Monetary))
+
+# Plot the summarized data
+ggplot(df_summary, aes(x = freq_group, y = total_monetary, fill = freq_group)) +
+  geom_bar(stat = "identity", color = "black") +
+  labs(title = "Total Monetary Value by Customer Frequency",
+       x = "Customer Frequency",
+       y = "Total Monetary Value (in Millions)") +
+  scale_y_continuous(labels = scales::comma_format(scale = 1/1000000, suffix = " M")) +
+  theme_minimal()
+```
+
+## Patterns of Customer using Discount
+
+```{r}
+# Summarize the data by counting the number of "Yes" values in the discount column
+df_summary1 <- left_joined_df %>%
+  mutate(freq_group = ifelse(Freq == 1, "Frequency 1", "Frequency > 1")) %>%
+  group_by(freq_group) %>%
+  summarize(yes_count = sum(discount == "Yes"))
+
+# Plot the summarized data
+ggplot(df_summary1, aes(x = freq_group, y = yes_count, fill = freq_group)) +
+  geom_bar(stat = "identity", color = "black") +
+  labs(title = "Count of 'Yes' in Discount by Customer Frequency",
+       x = "Customer Frequency",
+       y = "Count of 'Yes' in Discount") +
+  theme_minimal()
+```
+
+# Clustering using RFM
+
+-   done on SAS Viya
